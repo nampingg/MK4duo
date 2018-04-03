@@ -101,9 +101,9 @@ void HAL_stepper_timer_start() {
 }
 
 void HAL_temp_timer_start() {
-  TCCR0A      =  0; // set entire TCCR2A register to 0
-  TEMP_TCCR   =  0; // set entire TEMP_TCCR register to 0
-  TIMER_OCR_0 = 64; // Set divisor for 64 3906 Hz
+  TCCR0A    =  0; // set entire TCCR2A register to 0
+  TEMP_TCCR =  0; // set entire TEMP_TCCR register to 0
+  TEMP_OCR  = 64; // Set divisor for 64 3906 Hz
   // Set CS01 and CS00 bits for 64 prescaler
   TEMP_TCCR |= (1 << CS01) | (1 << CS00);
 }
@@ -265,7 +265,7 @@ void HAL::setPwmFrequency(const pin_t pin, uint8_t val) {
  */
 HAL_TEMP_TIMER_ISR {
 
-  TIMER_OCR_0 += 64;
+  TEMP_OCR += 64;
 
   if (!printer.IsRunning()) return;
 
@@ -315,7 +315,7 @@ HAL_TEMP_TIMER_ISR {
 
   // Calculation cycle approximate a 100ms
   cycle_100ms++;
-  if (cycle_100ms >= 390) {
+  if (cycle_100ms >= (F_CPU / 40960)) {
     cycle_100ms = 0;
     HAL::execute_100ms = true;
     #if ENABLED(FAN_KICKSTART_TIME) && FAN_COUNT > 0
