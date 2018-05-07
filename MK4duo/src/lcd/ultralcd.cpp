@@ -4024,7 +4024,7 @@ void kill_screen(const char* lcd_msg) {
 
       #if HAS_POWER_CONSUMPTION_SENSOR
         char Power[10];
-        sprintf_P(Power, PSTR("%uWh"), consumption_hour);
+        sprintf_P(Power, PSTR("%uWh"), powerManager.consumption_hour);
       #endif
 
       START_SCREEN();
