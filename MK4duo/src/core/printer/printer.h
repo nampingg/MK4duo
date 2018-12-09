@@ -65,6 +65,16 @@ union flagVarious_t {
   flagVarious_t() { all = 0; }
 };
 
+typedef struct {
+
+  #if HEATER_COUNT > 0
+    heater_data_t heater[HEATER_COUNT];
+  #endif
+
+} setting_t;
+
+extern setting_t settings;
+
 extern const char axis_codes[NUM_AXIS];
 
 class Printer {
@@ -162,6 +172,12 @@ class Printer {
     #else
       FORCE_INLINE static void keepalive(const BusyStateEnum state) { UNUSED(state); }
     #endif
+
+    FORCE_INLINE static void zero_fan_speed() {
+      #if FAN_COUNT > 0
+        LOOP_FAN() fans[f].Speed = 0;
+      #endif
+    }
 
     // Flag Debug function
     static void setDebugLevel(const uint8_t newLevel);

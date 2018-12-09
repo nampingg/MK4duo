@@ -119,7 +119,7 @@ void LcdUI::set_font(const MK4duoFontEnum font_nr) {
     void lcd_custom_bootscreen() {
       #if ENABLED(ANIMATED_BOOTSCREEN)
         LOOP_L_N(f, COUNT(custom_bootscreen_animation)) {
-          if (f) safe_delay(CUSTOM_BOOTSCREEN_FRAME_TIME);
+          if (f) printer.safe_delay(CUSTOM_BOOTSCREEN_FRAME_TIME);
           draw_custom_bootscreen((u8g_pgm_uint8_t*)pgm_read_ptr(&custom_bootscreen_animation[f]), f == 0);
         }
       #else
@@ -345,7 +345,7 @@ void LcdUI::clear_lcd() { } // Automatically cleared by Picture Loop
     #endif
 
     // Center the label and value lines on the middle line
-    uint8_t baseline = extra_row ? (LCD_PIXEL_HEIGHT) / 2
+    uint8_t baseline = extra_row ? (LCD_PIXEL_HEIGHT) / 2 - 1
                                  : (LCD_PIXEL_HEIGHT + EDIT_FONT_ASCENT) / 2;
 
     // Assume the label is alpha-numeric (with a descender)
@@ -360,7 +360,7 @@ void LcdUI::clear_lcd() { } // Automatically cleared by Picture Loop
       lcd_put_wchar(':');
       if (extra_row) {
         // Assume the value is numeric (with no descender)
-        baseline += EDIT_FONT_ASCENT;
+        baseline += EDIT_FONT_ASCENT + 2;
         onpage = PAGE_CONTAINS(baseline - (EDIT_FONT_ASCENT - 1), baseline);
       }
       if (onpage) {
@@ -373,7 +373,7 @@ void LcdUI::clear_lcd() { } // Automatically cleared by Picture Loop
 
   #if HAS_SD_SUPPORT
 
-    void draw_sd_menu_item(const bool sel, const uint8_t row, PGM_P const pstr, CardReader &theCard, const bool isDir) {
+    void draw_sd_menu_item(const bool sel, const uint8_t row, PGM_P const pstr, SDCard &theCard, const bool isDir) {
       UNUSED(pstr);
 
       if (mark_as_selected(row, sel)) {

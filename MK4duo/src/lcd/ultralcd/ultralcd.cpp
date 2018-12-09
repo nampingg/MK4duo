@@ -57,7 +57,7 @@ LcdUI lcdui;
   #endif
 #endif
 
-#if ENABLED(SDSUPPORT) && PIN_EXISTS(SD_DETECT)
+#if HAS_SD_SUPPORT && PIN_EXISTS(SD_DETECT)
   uint8_t lcd_sd_status;
 #endif
 
@@ -95,7 +95,7 @@ millis_t next_button_update_ms;
       uint8_t LcdUI::filename_scroll_pos, LcdUI::filename_scroll_max;
     #endif
 
-    const char * LcdUI::scrolled_filename(CardReader &theCard, const uint8_t maxlen, uint8_t hash, const bool doScroll) {
+    const char * LcdUI::scrolled_filename(SDCard &theCard, const uint8_t maxlen, uint8_t hash, const bool doScroll) {
       const char *outstr = theCard.fileName;
       if (theCard.fileName[0]) {
         #if ENABLED(SCROLL_LONG_FILENAMES)
@@ -273,7 +273,7 @@ bool LcdUI::get_blink() {
       #define ADC_MIN_KEY_DELAY 100
       if (keypad_buttons) {
         #if HAS_ENCODER_ACTION
-          lcdui.refresh(LCDVIEW_REDRAW_NOW);
+          refresh(LCDVIEW_REDRAW_NOW);
           #if HAS_LCD_MENU
             if (encoderDirection == -1) { // side effect which signals we are inside a menu
               if      (RRK(EN_REPRAPWORLD_KEYPAD_DOWN))   encoderPosition -= ENCODER_STEPS_PER_MENU_ITEM;
@@ -1181,7 +1181,7 @@ void LcdUI::setalertstatusPGM(PGM_P const message) {
     static const char printing[] PROGMEM = MSG_PRINTING;
     static const char welcome[] PROGMEM = WELCOME_MSG;
     PGM_P msg;
-    if (print_job_counter.isPaused())
+    if (!IS_SD_PRINTING() && print_job_counter.isPaused())
       msg = paused;
     #if HAS_SD_SUPPORT
       else if (IS_SD_PRINTING())

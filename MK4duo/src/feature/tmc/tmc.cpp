@@ -76,13 +76,15 @@
 
 TMC_Stepper tmc;
 
-// Public Parameters
+/** Public Parameters */
 
-// Private Parameters
+/** Private Parameters */
 bool TMC_Stepper::report_status = false;
 
-// Public Function
+/** Public Function */
 void TMC_Stepper::init() {
+
+  init_cs_pins();
 
   #if HAVE_DRV(TMC2660)
 
@@ -95,7 +97,7 @@ void TMC_Stepper::init() {
     #endif
 
     #if DISABLED(SOFT_SPI_TMC2130)
-      HAL::spiBegin();
+      SPI.begin();
     #endif
 
     // Stepper objects of TMC2660 steppers used
@@ -165,7 +167,7 @@ void TMC_Stepper::init() {
     #endif
 
     #if DISABLED(SOFT_SPI_TMC2130)
-      HAL::spiBegin();
+      SPI.begin();
     #endif
 
     // Stepper objects of TMC2130 steppers used
@@ -557,6 +559,26 @@ void TMC_Stepper::restore() {
 
 #endif // ENABLED(MONITOR_DRIVER_STATUS)
 
+#if HAS_SENSORLESS
+
+  bool TMC_Stepper::enable_stallguard(MKTMC* st) {
+    bool old_stealthChop = st->en_pwm_mode();
+
+    st->TCOOLTHRS(0xFFFFF);
+    st->en_pwm_mode(false);
+    st->diag1_stall(true);
+
+    return old_stealthChop;
+  }
+
+  void TMC_Stepper::disable_stallguard(MKTMC* st, const bool enable) {
+    st->TCOOLTHRS(0);
+    st->en_pwm_mode(enable);
+    st->diag1_stall(false);
+  }
+
+#endif
+
 #if ENABLED(TMC_DEBUG)
 
   /**
@@ -671,7 +693,53 @@ MKTMC* TMC_Stepper::driver_by_index(const uint8_t index) {
 
 }
 
-// Private Function
+/** Private Function */
+#if TMC_HAS_SPI
+
+  void TMC_Stepper::init_cs_pins() {
+    #if AXIS_HAS_SPI(X)
+      OUT_WRITE(X_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(Y)
+      OUT_WRITE(Y_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(Z)
+      OUT_WRITE(Z_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(X2)
+      OUT_WRITE(X2_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(Y2)
+      OUT_WRITE(Y2_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(Z2)
+      OUT_WRITE(Z2_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(Z3)
+      OUT_WRITE(Z3_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(E0)
+      OUT_WRITE(E0_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(E1)
+      OUT_WRITE(E1_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(E2)
+      OUT_WRITE(E2_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(E3)
+      OUT_WRITE(E3_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(E4)
+      OUT_WRITE(E4_CS_PIN, HIGH);
+    #endif
+    #if AXIS_HAS_SPI(E5)
+      OUT_WRITE(E5_CS_PIN, HIGH);
+    #endif
+  }
+
+#endif // TMC_HAS_SPI
+
 #if HAVE_DRV(TMC2660)
 
   void TMC_Stepper::config(MKTMC* st, const int8_t tmc_sgt/*=0*/) {
@@ -1009,7 +1077,12 @@ MKTMC* TMC_Stepper::driver_by_index(const uint8_t index) {
           break;
         case TMC_VSENSE: print_vsense(st); break;
         case TMC_MICROSTEPS: SERIAL_VAL(st->microsteps()); break;
-        case TMC_TSTEP: SERIAL_VAL(st->TSTEP()); break;
+        case TMC_TSTEP: {
+            uint32_t tstep_value = st->TSTEP();
+            if (tstep_value == 0xFFFFF) SERIAL_MSG("max");
+            else SERIAL_VAL(tstep_value);
+          }
+          break;
         case TMC_TPWMTHRS: {
             uint32_t tpwmthrs_val = st->TPWMTHRS();
             SERIAL_VAL(tpwmthrs_val);

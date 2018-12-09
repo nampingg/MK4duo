@@ -211,7 +211,7 @@ typedef struct EepromDataStruct {
   // SD Restart
   //
   #if HAS_SD_RESTART
-    bool restart_enabled;
+    bool              restart_enabled;
   #endif
 
   //
@@ -268,7 +268,7 @@ typedef struct EepromDataStruct {
   // Linear Advance
   //
   #if ENABLED(LIN_ADVANCE)
-    float             planner_extruder_advance_K[EXTRUDERS];
+    float             planner_extruder_advance_K;
   #endif
 
   //
@@ -549,7 +549,8 @@ void EEPROM::post_process() {
     // Universal Bed Leveling
     //
     #if ENABLED(AUTO_BED_LEVELING_UBL)
-      EEPROM_WRITE(bedlevel.flag.leveling_active);
+      const bool bedlevel_leveling_active = bedlevel.flag.leveling_active;
+      EEPROM_WRITE(bedlevel_leveling_active);
       EEPROM_WRITE(ubl.storage_slot);
     #endif
 
@@ -998,8 +999,10 @@ void EEPROM::post_process() {
       // Universal Bed Leveling
       //
       #if ENABLED(AUTO_BED_LEVELING_UBL)
-        EEPROM_READ(bedlevel.flag.leveling_active);
+        bool bedlevel_leveling_active;
+        EEPROM_READ(bedlevel_leveling_active);
         EEPROM_READ(ubl.storage_slot);
+        bedlevel.flag.leveling_active = bedlevel_leveling_active;
       #endif
 
       //
@@ -2177,7 +2180,7 @@ void EEPROM::reset() {
       SERIAL_SMV(CFG, "  M208 S", LINEAR_UNIT(fwretract.data.retract_recover_length));
       SERIAL_MV(" W", LINEAR_UNIT(fwretract.data.swap_retract_recover_length));
       SERIAL_MV(" F", MMS_TO_MMM(LINEAR_UNIT(fwretract.data.retract_recover_feedrate_mm_s)));
-      SERIAL_MV(" R", MMS_TO_MMM(LINEAR_UNIT(fwretract.data.swap_retract_recover_feedrate_mm_s)));
+      SERIAL_EMV(" R", MMS_TO_MMM(LINEAR_UNIT(fwretract.data.swap_retract_recover_feedrate_mm_s)));
 
       SERIAL_LM(CFG, "Auto-Retract: S=0 to disable, 1 to interpret E-only moves as retract/recover");
       SERIAL_LMV(CFG, "  M209 S", fwretract.autoretract_enabled ? 1 : 0);

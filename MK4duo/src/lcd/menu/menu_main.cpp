@@ -34,12 +34,7 @@
     #if HAS_SD_RESTART
       if (restart.enabled) restart.save_job(true, false);
     #endif
-    card.pauseSDPrint();
-    print_job_counter.pause();
-    #if ENABLED(PARK_HEAD_ON_PAUSE)
-      commands.enqueue_and_echo_P(PSTR("M125"));
-    #endif
-    lcdui.reset_status();
+    commands.enqueue_and_echo_P(PSTR("M25"));
   }
 
   void lcd_sdcard_resume() {
@@ -48,8 +43,8 @@
     #else
       card.startFileprint();
       print_job_counter.start();
+      lcdui.reset_status();
     #endif
-    lcdui.reset_status();
   }
 
   void lcd_sdcard_stop() {
@@ -99,17 +94,21 @@
     END_SCREEN();
   }
 
-  void menu_firmware() {
-    lcdui.encoderPosition = 2 * ENCODER_STEPS_PER_MENU_ITEM;
-    START_MENU();
-    MENU_BACK(MSG_MAIN);
-    STATIC_ITEM(MSG_DO_YOU_ARE_SHURE);
-    MENU_ITEM(function, MSG_YES, UploadNewFirmware);
-    MENU_ITEM(submenu, MSG_NO, menu_main);
-    END_MENU();
-  }
+  #if HAS_SD_SUPPORT
 
-#endif
+    void menu_firmware() {
+      lcdui.encoderPosition = 2 * ENCODER_STEPS_PER_MENU_ITEM;
+      START_MENU();
+      MENU_BACK(MSG_MAIN);
+      STATIC_ITEM(MSG_DO_YOU_ARE_SHURE);
+      MENU_ITEM(function, MSG_YES, UploadNewFirmware);
+      MENU_ITEM(submenu, MSG_NO, menu_main);
+      END_MENU();
+    }
+
+  #endif
+
+#endif // HAS_NEXTION_LCD
 
 void menu_tune();
 void menu_motion();
@@ -142,7 +141,7 @@ void menu_main() {
       }
     }
     else {
-      MENU_ITEM(submenu, MSG_NO_CARD, menu_sdcard);
+      MENU_ITEM(function, MSG_NO_CARD, NULL);
       #if !PIN_EXISTS(SD_DETECT)
         MENU_ITEM(gcode, MSG_INIT_SDCARD, PSTR("M21")); // Manually initialize the SD-card via user interface
       #endif
@@ -153,11 +152,9 @@ void menu_main() {
   if (busy)
     MENU_ITEM(submenu, MSG_TUNE, menu_tune);
   else {
-    #if !HAS_NEXTION_LCD
-      MENU_ITEM(submenu, MSG_MOTION, menu_motion);
-      if (printer.mode == PRINTER_MODE_FFF)
-        MENU_ITEM(submenu, MSG_TEMPERATURE, menu_temperature);
-    #endif
+    MENU_ITEM(submenu, MSG_MOTION, menu_motion);
+    if (printer.mode == PRINTER_MODE_FFF)
+      MENU_ITEM(submenu, MSG_TEMPERATURE, menu_temperature);
   }
 
   MENU_ITEM(submenu, MSG_CONFIGURATION, menu_configuration);
@@ -200,7 +197,7 @@ void menu_main() {
   //
   // Autostart
   //
-  #if ENABLED(SDSUPPORT) && ENABLED(MENU_ADDAUTOSTART)
+  #if HAS_SD_SUPPORT && ENABLED(MENU_ADDAUTOSTART)
     if (!busy)
       MENU_ITEM(function, MSG_AUTOSTART, card.beginautostart);
   #endif

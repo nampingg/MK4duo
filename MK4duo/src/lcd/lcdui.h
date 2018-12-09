@@ -22,7 +22,7 @@
 #pragma once
 
 #if HAS_SD_SUPPORT
-  #include "../sd/cardreader.h"
+  #include "../sdcard/sdcard.h"
 #endif
 
 #define LCD_MESSAGEPGM(x)       lcdui.setstatusPGM(PSTR(x))
@@ -171,7 +171,7 @@ class LcdUI {
 
     #if HAS_SPI_LCD || HAS_NEXTION_LCD
       #if HAS_LCD_MENU
-        #if LCD_TIMEOUT_TO_STATUS
+        #if LCD_TIMEOUT_TO_STATUS > 0
           static bool defer_return_to_status;
         #else
           static constexpr bool defer_return_to_status = false;
@@ -188,6 +188,7 @@ class LcdUI {
       static void init();
       static void update();
       static void setalertstatusPGM(PGM_P message);
+      static void quick_feedback(const bool clear_buttons=true);
 
       #if HAS_SPI_LCD
 
@@ -220,8 +221,6 @@ class LcdUI {
           static inline void refresh_contrast() { set_contrast(contrast); }
         #endif
 
-        static void quick_feedback(const bool clear_buttons=true);
-        static void completion_feedback(const bool good=true);
         static void draw_status_message(const bool blink);
 
       #endif // HAS_SPI_LCD
@@ -272,7 +271,7 @@ class LcdUI {
       #endif
 
       #if HAS_SD_SUPPORT && HAS_SPI_LCD
-        static const char * scrolled_filename(CardReader &theCard, const uint8_t maxlen, uint8_t hash, const bool doScroll);
+        static const char * scrolled_filename(SDCard &theCard, const uint8_t maxlen, uint8_t hash, const bool doScroll);
       #endif
 
       static void manage_manual_move();
@@ -290,7 +289,7 @@ class LcdUI {
       static inline void run_current_screen() { (*currentScreen)(); }
 
       static inline void defer_status_screen(const bool defer) {
-        #if LCD_TIMEOUT_TO_STATUS
+        #if LCD_TIMEOUT_TO_STATUS > 0
           defer_return_to_status = defer;
         #else
           UNUSED(defer);
@@ -335,7 +334,7 @@ class LcdUI {
         static uint8_t read_slow_buttons();
       #endif
       static void update_buttons();
-      static inline bool button_pressed();
+      static bool button_pressed();
       #if ENABLED(AUTO_BED_LEVELING_UBL) || ENABLED(G26_MESH_VALIDATION)
         static void wait_for_release();
       #endif

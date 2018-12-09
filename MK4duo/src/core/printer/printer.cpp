@@ -28,6 +28,8 @@
 
 #include "../../../MK4duo.h"
 
+setting_t settings;
+
 const char axis_codes[XYZE] = {'X', 'Y', 'Z', 'E'};
 
 Printer printer;
@@ -134,6 +136,10 @@ void Printer::setup() {
 
   setup_pinout();
 
+  #if MB(ALLIGATOR_R2) || MB(ALLIGATOR_R3)
+    HAL::spiBegin();
+  #endif
+
   #if HAS_POWER_SWITCH
     #if PS_DEFAULT_OFF
       powerManager.power_off();
@@ -150,8 +156,13 @@ void Printer::setup() {
   Com::setBaudrate();
 
   // Check startup
-  SERIAL_STR(INFO);
+  SERIAL_L(START);
+  SERIAL_STR(ECHO);
   HAL::showStartReason();
+
+  #if HAS_TRINAMIC
+    tmc.init();
+  #endif
 
   #if MECH(MUVE3D) && ENABLED(PROJECTOR_PORT) && ENABLED(PROJECTOR_BAUDRATE)
     DLPSerial.begin(PROJECTOR_BAUDRATE);
@@ -179,10 +190,6 @@ void Printer::setup() {
 
   #if HAS_SD_SUPPORT
     if (!card.isOK()) card.mount();
-  #endif
-
-  #if HAS_TRINAMIC
-    tmc.init();
   #endif
 
   print_job_counter.init();
@@ -287,9 +294,7 @@ void Printer::setup() {
     mechanics.home();
   #endif
 
-  #if FAN_COUNT > 0
-    LOOP_FAN() fans[f].Speed = 0;
-  #endif
+  zero_fan_speed();
 
   #if HAS_LCD_MENU && HAS_EEPROM
     if (!eeprom_loaded) lcdui.goto_screen(menu_eeprom);
@@ -335,21 +340,17 @@ void Printer::loop() {
         // Stop printer job timer
         print_job_counter.stop();
 
-        // Stop all stepper
-        quickstop_stepper();
-
         // Auto home
         #if Z_HOME_DIR > 0
-          mechanics.home();
+          commands.enqueue_and_echo_P(PSTR("G28"));
         #else
-          mechanics.home(true, true, false);
+          commands.enqueue_and_echo_P(PSTR("G28 X Y"));
         #endif
 
         // Disabled Heaters and Fan
         thermalManager.disable_all_heaters();
-        #if FAN_COUNT > 0
-          LOOP_FAN() fans[f].Speed = 0;
-        #endif
+        zero_fan_speed();
+        setWaitForHeatUp(false);
 
       }
 
@@ -387,10 +388,6 @@ void Printer::check_periodical_actions() {
 
     #if HAS_SD_SUPPORT
       if (card.isAutoreportSD()) card.printStatus();
-    #endif
-
-    #if HAS_NEXTION_LCD
-      nextion_draw_update();
     #endif
 
     if (planner.cleaning_buffer_flag) {

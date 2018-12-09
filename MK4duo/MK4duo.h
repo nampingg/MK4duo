@@ -30,8 +30,9 @@
  * Licence: GPL
  *
  *******************************************************************************************/
-
 #pragma once
+
+#define __MK4DUO_FIRMWARE__
 
 #include "Arduino.h"
 #include "pins_arduino.h"
@@ -121,14 +122,14 @@
 #include "src/core/tools/tools.h"
 #include "src/core/tools/nozzle.h"
 #include "src/core/fan/fan.h"
+#include "src/core/heater/sensor/thermistor.h"
+#include "src/core/heater/heater.h"
 #include "src/core/commands/commands.h"
 #include "src/core/eeprom/eeprom.h"
 #include "src/core/printer/printer.h"
 #include "src/core/planner/planner.h"
 #include "src/core/endstop/endstops.h"
 #include "src/core/stepper/stepper.h"
-#include "src/core/heater/sensor/thermistor.h"
-#include "src/core/heater/heater.h"
 #include "src/core/temperature/temperature.h"
 #include "src/core/printcounter/printcounter.h"
 #include "src/core/sound/sound.h"
@@ -149,8 +150,8 @@
 // Menu modules
 #include "src/lcd/menu/menu.h"
 
-// SD modules
-#include "src/sd/cardreader.h"
+// SDCARD modules
+#include "src/sdcard/sdcard.h"
 
 // Feature modules
 #include "src/feature/emergency_parser/emergency_parser.h"

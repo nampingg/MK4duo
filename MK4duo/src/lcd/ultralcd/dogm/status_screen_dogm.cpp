@@ -45,6 +45,10 @@ FORCE_INLINE void _draw_centered_temp(const int16_t temp, const uint8_t tx, cons
   lcd_put_wchar(LCD_STR_DEGREE[0]);
 }
 
+#define XYZ_BASELINE    (30 + INFO_FONT_ASCENT)
+#define EXTRAS_BASELINE (40 + INFO_FONT_ASCENT)
+#define STATUS_BASELINE (LCD_PIXEL_HEIGHT - INFO_FONT_DESCENT)
+
 #define DO_DRAW_BED (HAS_TEMP_BED && STATUS_BED_WIDTH && HOTENDS <= 3 && DISABLED(STATUS_COMBINE_HEATERS))
 #define DO_DRAW_FAN (HAS_FAN0 && STATUS_FAN_WIDTH && STATUS_FAN_FRAMES)
 #define ANIM_HOTEND (HOTENDS && ENABLED(STATUS_HOTEND_ANIM))
@@ -77,8 +81,7 @@ FORCE_INLINE void _draw_heater_status(const uint8_t heater, const bool blink) {
   #endif
 
   const bool    isHeat  = IFBED(BED_ALT(), HOTEND_ALT(heater));
-  const uint8_t ix      = IFBED(STATUS_BED_X, STATUS_HOTEND_X(heater)),
-                tx      = IFBED(STATUS_BED_TEXT_X, STATUS_HOTEND_TEXT_X(heater));
+  const uint8_t tx      = IFBED(STATUS_BED_TEXT_X, STATUS_HOTEND_TEXT_X(heater));
   const float   temp    = heaters[heater].current_temperature,
                 target  = float(heaters[heater].isIdle() ? heaters[heater].idle_temperature : heaters[heater].target_temperature);
 
@@ -124,8 +127,9 @@ FORCE_INLINE void _draw_heater_status(const uint8_t heater, const bool blink) {
 
     #define BAR_TALL (STATUS_HEATERS_HEIGHT - 2)
 
-    const float prop = target - 20, perc = prop > 0 && temp >= 20 ? (temp - 20) / prop : 0;
-    uint8_t tall = uint8_t(perc * BAR_TALL);
+    const float prop = target - 20,
+                perc = prop > 0 && temp >= 20 ? (temp - 20) / prop : 0;
+    uint8_t tall = uint8_t(perc * BAR_TALL + 0.5f);
     NOMORE(tall, BAR_TALL);
 
     #if ENABLED(STATUS_HOTEND_ANIM)
@@ -133,7 +137,7 @@ FORCE_INLINE void _draw_heater_status(const uint8_t heater, const bool blink) {
       if (IFBED(0, 1)) {
         const uint8_t hx = STATUS_HOTEND_X(heater), bw = STATUS_HOTEND_BYTEWIDTH(heater);
         #if ENABLED(STATUS_HEAT_PERCENT)
-          if (isHeat && tall < BAR_TALL) {
+          if (isHeat && tall <= BAR_TALL) {
             const uint8_t ph = STATUS_HEATERS_HEIGHT - 1 - tall;
             u8g.drawBitmapP(hx, STATUS_HEATERS_Y, bw, ph, HOTEND_BITMAP(heater, false));
             u8g.drawBitmapP(hx, STATUS_HEATERS_Y + ph, bw, tall + 1, HOTEND_BITMAP(heater, true) + ph * bw);
@@ -148,7 +152,7 @@ FORCE_INLINE void _draw_heater_status(const uint8_t heater, const bool blink) {
     #if ENABLED(STATUS_HEAT_PERCENT)
 
       if (IFBED(true, STATIC_HOTEND) && isHeat) {
-        const uint8_t bx = ix + IFBED(STATUS_BED_WIDTH, STATUS_HOTEND_WIDTH(heater)) + 1;
+        const uint8_t bx = IFBED(STATUS_BED_X + STATUS_BED_WIDTH, STATUS_HOTEND_X(heater) + STATUS_HOTEND_WIDTH(heater)) + 1;
         u8g.drawFrame(bx, STATUS_HEATERS_Y, 3, STATUS_HEATERS_HEIGHT);
         if (tall) {
           const uint8_t ph = STATUS_HEATERS_HEIGHT - 1 - tall;
@@ -272,7 +276,7 @@ void LcdUI::draw_status_screen() {
 
       // Fan, if a bitmap was provided
       #if DO_DRAW_FAN
-        if (PAGE_CONTAINS(STATUS_FAN_TEXT_Y - INFO_FONT_ASCENT, STATUS_FAN_TEXT_Y)) {
+        if (PAGE_CONTAINS(STATUS_FAN_TEXT_Y - INFO_FONT_ASCENT, STATUS_FAN_TEXT_Y - 1)) {
           const int per = ((int(fans[0].Speed) + 1) * 100) / 256;
           if (per) {
             lcd_moveto(STATUS_FAN_TEXT_X, STATUS_FAN_TEXT_Y);
@@ -416,8 +420,6 @@ void LcdUI::draw_status_screen() {
   // XYZ Coordinates
   //
 
-  #define XYZ_BASELINE (30 + INFO_FONT_ASCENT)
-
   #define X_LABEL_POS  3
   #define X_VALUE_POS 11
   #define XYZ_SPACING 37
@@ -468,15 +470,16 @@ void LcdUI::draw_status_screen() {
   //
   // Feedrate
   //
-  #define EXTRAS_BASELINE 50
 
-  if (PAGE_CONTAINS(EXTRAS_BASELINE - (INFO_FONT_HEIGHT - 1), EXTRAS_BASELINE)) {
+  #define EXTRAS_2_BASELINE (EXTRAS_BASELINE + 3)
+
+  if (PAGE_CONTAINS(EXTRAS_2_BASELINE - INFO_FONT_ASCENT, EXTRAS_2_BASELINE - 1)) {
     set_font(FONT_MENU);
-    lcd_moveto(3, EXTRAS_BASELINE);
+    lcd_moveto(3, EXTRAS_2_BASELINE);
     lcd_put_wchar(LCD_STR_FEEDRATE[0]);
 
     set_font(FONT_STATUSMENU);
-    lcd_moveto(12, EXTRAS_BASELINE);
+    lcd_moveto(12, EXTRAS_2_BASELINE);
     lcd_put_u8str(itostr3(mechanics.feedrate_percentage));
     lcd_put_wchar('%');
 
@@ -484,15 +487,15 @@ void LcdUI::draw_status_screen() {
     // Filament sensor display if SD is disabled
     //
     #if HAS_LCD_FILAMENT_SENSOR && DISABLED(SDSUPPORT)
-      lcd_moveto(56, EXTRAS_BASELINE);
+      lcd_moveto(56, EXTRAS_2_BASELINE);
       lcd_put_u8str(wstring);
-      lcd_moveto(102, EXTRAS_BASELINE);
+      lcd_moveto(102, EXTRAS_2_BASELINE);
       lcd_put_u8str(mstring);
       lcd_put_wchar('%');
       set_font(FONT_MENU);
-      lcd_moveto(47, EXTRAS_BASELINE);
+      lcd_moveto(47, EXTRAS_2_BASELINE);
       lcd_put_wchar(LCD_STR_FILAM_DIA[0]); // lcd_put_u8str_P(PSTR(LCD_STR_FILAM_DIA));
-      lcd_moveto(93, EXTRAS_BASELINE);
+      lcd_moveto(93, EXTRAS_2_BASELINE);
       lcd_put_wchar(LCD_STR_FILAM_MUL[0]);
     #endif
   }
@@ -501,9 +504,7 @@ void LcdUI::draw_status_screen() {
   // Status line
   //
 
-  #define STATUS_BASELINE (LCD_PIXEL_HEIGHT - INFO_FONT_DESCENT)
-
-  if (PAGE_CONTAINS(STATUS_BASELINE - (INFO_FONT_ASCENT - 1), STATUS_BASELINE)) {
+  if (PAGE_CONTAINS(STATUS_BASELINE - INFO_FONT_ASCENT, STATUS_BASELINE + INFO_FONT_DESCENT)) {
     lcd_moveto(0, STATUS_BASELINE);
 
     #if (HAS_LCD_FILAMENT_SENSOR && ENABLED(SDSUPPORT)) || HAS_LCD_POWER_SENSOR
@@ -581,6 +582,7 @@ void LcdUI::draw_status_message(const bool blink) {
           if (--chars) {
             // Print a second copy of the message
             lcd_put_u8str_max(status_message, LCD_PIXEL_WIDTH - (rlen + 2) * (MENU_FONT_WIDTH));
+            lcd_put_wchar(' ');
           }
         }
       }

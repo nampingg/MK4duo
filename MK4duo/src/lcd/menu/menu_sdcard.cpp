@@ -30,8 +30,8 @@
 
 #if !PIN_EXISTS(SD_DETECT)
   void lcd_sd_refresh() {
-    card.mount();
     encoderTopLine = 0;
+    card.mount();
   }
 #endif
 
@@ -40,9 +40,6 @@ void lcd_sd_updir() {
   encoderTopLine = 0;
   screen_changed = true;
   lcdui.refresh();
-  #if HAS_NEXTION_LCD
-    lcdui.clear_lcd();
-  #endif
 }
 
 #if ENABLED(SD_REPRINT_LAST_SELECTED_FILE)
@@ -74,7 +71,7 @@ void lcd_sd_updir() {
 
 class MenuItem_sdfile {
   public:
-    static void action(CardReader &theCard) {
+    static void action(SDCard &theCard) {
       #if ENABLED(SD_REPRINT_LAST_SELECTED_FILE)
         last_sdfile_encoderPosition = lcdui.encoderPosition;  // Save which file was selected for later use
       #endif
@@ -86,7 +83,7 @@ class MenuItem_sdfile {
 
 class MenuItem_sdfolder {
   public:
-    static void action(CardReader &theCard) {
+    static void action(SDCard &theCard) {
       card.chdir(theCard.fileName);
       encoderTopLine = 0;
       lcdui.encoderPosition = 2 * ENCODER_STEPS_PER_MENU_ITEM;
@@ -113,14 +110,19 @@ void menu_sdcard() {
       MENU_ITEM(function, LCD_STR_REFRESH MSG_REFRESH, lcd_sd_refresh);
     #endif
   }
-  else {
+  else if (card.isOK()) {
     MENU_ITEM(function, LCD_STR_FOLDER "..", lcd_sd_updir);
   }
 
   for (uint16_t i = 0; i < fileCnt; i++) {
     if (_menuLineNr == _thisItemNr) {
+      const uint16_t nr =
+        #if DISABLED(SDCARD_SORT_ALPHA)
+          fileCnt - 1 -
+        #endif
+      i;
 
-      card.getfilename_sorted(i);
+      card.getfilename_sorted(nr);
 
       if (card.isFilenameIsDir())
         MENU_ITEM(sdfolder, MSG_CARD_MENU, card);

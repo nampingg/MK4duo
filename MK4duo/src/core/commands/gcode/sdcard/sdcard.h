@@ -55,21 +55,20 @@
   /**
    * M21: Init SD Card
    */
-  inline void gcode_M21(void) {
-    card.mount();
-  }
+  inline void gcode_M21(void) { card.mount(); }
 
   /**
    * M22: Release SD Card
    */
-  inline void gcode_M22(void) {
-    card.unmount();
-  }
+  inline void gcode_M22(void) { card.unmount(); }
 
   /**
    * M23: Select a file
    */
   inline void gcode_M23(void) {
+    #if HAS_SD_RESTART
+      restart.purge_job();
+    #endif
     // Simplify3D includes the size, so zero out all spaces (#7227)
     // Questa funzione blocca il nome al primo spazio quindi file con spazio nei nomi non funziona da rivedere
     //for (char *fn = parser.string_arg; *fn; ++fn) if (*fn == ' ') *fn = '\0';
@@ -87,30 +86,30 @@
     #endif
 
     if (parser.seenval('S')) card.setIndex(parser.value_long());
+    if (parser.seenval('T')) print_job_counter.resume(parser.value_long());
 
     card.startFileprint();
-
-    if (parser.seenval('T'))
-      print_job_counter.resume(parser.value_long());
-    else
-      print_job_counter.start();
+    print_job_counter.start();
 
     #if HAS_POWER_CONSUMPTION_SENSOR
       powerManager.startpower = powerManager.consumption_hour;
     #endif
+
+    lcdui.reset_status();
   }
 
   /**
    * M25: Pause SD Print
    */
   void gcode_M25(void) {
-    card.pauseSDPrint();
-    print_job_counter.pause();
-    SERIAL_STR(PAUSE);
-    SERIAL_EOL();
-
     #if ENABLED(PARK_HEAD_ON_PAUSE)
-      commands.enqueue_and_echo_P(PSTR("M125")); // Must be enqueued with pauseSDPrint set to be last in the buffer
+      gcode_M125();
+    #else
+      card.pauseSDPrint();
+      print_job_counter.pause();
+      lcdui.reset_status();
+      SERIAL_STR(PAUSE);
+      SERIAL_EOL();
     #endif
   }
 
@@ -126,7 +125,9 @@
    * M27: Get SD Card status or set the SD status auto-report interval.
    */
   inline void gcode_M27(void) {
-    if (parser.seenval('S'))
+    if (parser.seen('C'))
+      SERIAL_EMT("Current file: ", card.fileName);
+    else if (parser.seenval('S'))
       card.setAutoreportSD(parser.value_bool());
     else
       card.printStatus();

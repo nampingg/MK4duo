@@ -19,6 +19,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
 /**
  * tmc.h
@@ -26,15 +27,12 @@
  * Copyright (C) 2017 Alberto Cotronei @MagoKimbra
  */
 
-#ifndef _TMC_H_
-#define _TMC_H_
-
 #if HAS_TRINAMIC
 
 #include <TMCStepper.h>
 
-#if TMCSTEPPER_VERSION < 0x000202
-  #error "Update TMCStepper library to 0.2.2 or newer."
+#if TMCSTEPPER_VERSION < 0x000203
+  #error "Update TMCStepper library to 0.2.3 or newer."
 #endif
 
 #define TMC_X_LABEL "X", 0
@@ -273,7 +271,7 @@ extern bool report_tmc_status;
 #if AXIS_HAS_TMC(E5)
   extern MKTMC* stepperE5;
 #endif
-    
+
 struct TMC_driver_data {
   uint32_t drv_status;
   bool is_otpw;
@@ -305,6 +303,11 @@ class TMC_Stepper {
       static void monitor_driver();
     #endif
 
+    #if HAS_SENSORLESS
+      static bool enable_stallguard(MKTMC* st);
+      static void disable_stallguard(MKTMC* st, const bool enable);
+    #endif
+
     #if ENABLED(TMC_DEBUG)
       static void set_report_status(const bool status);
       static void report_all();
@@ -312,15 +315,15 @@ class TMC_Stepper {
 
     MKTMC* driver_by_index(const uint8_t index);
 
-    FORCE_INLINE static uint32_t thrs(const uint16_t tmc_msteps, const int32_t tmc_thrs, const uint32_t tmc_spmm) {
+    FORCE_INLINE static uint16_t thrs(const uint16_t tmc_msteps, const int32_t tmc_thrs, const uint32_t tmc_spmm) {
       return 12650000UL * tmc_msteps / (256 * tmc_thrs * tmc_spmm);
     }
-    
+
     FORCE_INLINE static void get_current(MKTMC* st) {
       st->printLabel();
       SERIAL_EMV(" driver current: ", st->getMilliamps());
     }
-    
+
     FORCE_INLINE static void set_current(MKTMC* st, const uint16_t mA) {
       st->rms_current(mA);
     }
@@ -452,6 +455,10 @@ class TMC_Stepper {
 
   private: /** Private Function */
 
+    #if TMC_HAS_SPI
+      static void init_cs_pins();
+    #endif
+
     #if HAVE_DRV(TMC2660)
       static void config(MKTMC* st, const int8_t tmc_sgt=0);
     #elif HAVE_DRV(TMC2130)
@@ -503,5 +510,3 @@ class TMC_Stepper {
 extern TMC_Stepper tmc;
 
 #endif // HAS_TRINAMIC
-
-#endif /* _TMC_H_ */
